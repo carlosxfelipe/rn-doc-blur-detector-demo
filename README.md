@@ -6,11 +6,7 @@ Aplicativo de demonstração em **React Native CLI 0.88.1 (sem Expo, Nova Arquit
 
 - **Node.js `>= 22.11.0`** (conforme `engines.node` no [package.json](./package.json))
 - Ambiente **Android** (Android Studio / SDK) e/ou **iOS** (Xcode + CocoaPods)
-- **Tarball local do pacote:** o pacote `rn-doc-blur-detector` está disponível no repositório [https://github.com/carlosxfelipe/rn-doc-blur-detector](https://github.com/carlosxfelipe/rn-doc-blur-detector). O [package.json](./package.json) referencia `"rn-doc-blur-detector": "file:../rn-doc-blur-detector/rn-doc-blur-detector-1.0.0.tgz"`; antes de rodar `npm install`, clone o repositório na pasta irmã (`../rn-doc-blur-detector`) e gere o `.tgz` se ele ainda não existir:
-
-```bash
-cd ../rn-doc-blur-detector && npm run tarball && cd ../rn-doc-blur-detector-demo
-```
+- **Tarball local do pacote:** o pacote [`rn-doc-blur-detector`](https://github.com/carlosxfelipe/rn-doc-blur-detector) já está incluído neste repositório em [vendor/rn-doc-blur-detector-1.0.0.tgz](./vendor/rn-doc-blur-detector-1.0.0.tgz) e referenciado no [package.json](./package.json) via `"file:./vendor/rn-doc-blur-detector-1.0.0.tgz"`. Não é necessário clonar o repositório `rn-doc-blur-detector` separadamente antes de rodar `npm install`.
 
 ## Como o pacote `rn-doc-blur-detector` é usado neste projeto
 
