@@ -69,6 +69,9 @@ yarn-error.log
 # APK output
 /apk
 
+# Web build output
+/dist
+
 # Yarn
 .yarn/*
 !.yarn/patches

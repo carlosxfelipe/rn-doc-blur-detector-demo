@@ -84,6 +84,10 @@ export function AboutScreen() {
           • Android e iOS: PDF.js 4.10.38 vendorizado offline via Blob URLs na
           WebView.
         </Text>
+        <Text style={[styles.body, { color: colors.muted }]}>
+          • Web (react-native-web): HTMLCanvasElement para imagens e PDF.js
+          4.10.38 via CDN para PDFs.
+        </Text>
       </View>
     </ScrollView>
   );

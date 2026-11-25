@@ -1,6 +1,6 @@
 # rn-doc-blur-detector-demo
 
-Aplicativo de demonstração em **React Native CLI** para validar o pacote [`rn-doc-blur-detector`](https://github.com/carlosxfelipe/rn-doc-blur-detector) no **Android** e no **iOS**.
+Aplicativo de demonstração em **React Native CLI** para validar o pacote [`rn-doc-blur-detector`](https://github.com/carlosxfelipe/rn-doc-blur-detector) no **Android**, no **iOS** e na **Web** (`react-native-web` + Vite).
 
 ## O que este app demonstra
 
@@ -34,6 +34,12 @@ npm run build:android
 # iOS (instalar pods na primeira vez ou após atualizar dependências nativas)
 cd ios && pod install && cd ..
 npm run ios
+
+# Web (Vite + react-native-web)
+npm run web
+
+# Build de produção Web (salvo em dist/)
+npm run build:web
 ```
 
 ## Verificações

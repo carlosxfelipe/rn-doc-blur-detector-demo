@@ -1,23 +1,7 @@
-import {
-  errorCodes,
-  isErrorWithCode,
-  keepLocalCopy,
-  pick,
-  types,
-} from '@react-native-documents/picker';
-import {
-  type ComponentType,
-  type RefAttributes,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  PermissionsAndroid,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,11 +11,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import WebView, {
-  type WebViewMessageEvent,
-  type WebViewProps,
-} from 'react-native-webview';
 import {
   type BlurStatus,
   DEFAULT_LAPLACIAN_CONFIG,
@@ -47,19 +26,18 @@ import {
   formatBytes,
   isImageAsset,
   isPdfAsset,
-  PDF_WEBVIEW_HTML,
   validateFileSize,
 } from 'rn-doc-blur-detector/pdf';
 
+import {
+  captureCameraPhoto,
+  pickDocumentFile,
+  type PickedMediaAsset,
+  pickGalleryImage,
+  releasePickedUri,
+} from '../utils/documentPicker';
 import { Icon } from './Icon';
-
-interface WebViewRefHandle {
-  injectJavaScript: (script: string) => void;
-}
-
-const TypedWebView = WebView as unknown as ComponentType<
-  WebViewProps & RefAttributes<WebViewRefHandle>
->;
+import { PdfBridgeWebView, type WebViewRefHandle } from './PdfBridgeWebView';
 
 const STATUS_COLORS: Record<BlurStatus, { accent: string; bg: string }> = {
   sharp: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
@@ -67,16 +45,6 @@ const STATUS_COLORS: Record<BlurStatus, { accent: string; bg: string }> = {
   blurry: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
   insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
 };
-
-async function ensureCameraPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') {
-    return true;
-  }
-  const granted = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.CAMERA,
-  );
-  return granted === PermissionsAndroid.RESULTS.GRANTED;
-}
 
 export interface DocumentBlurDetectorProps {
   config?: Partial<LaplacianBlurConfig>;
@@ -95,7 +63,14 @@ export function DocumentBlurDetector({
 }: DocumentBlurDetectorProps) {
   const isDark = useColorScheme() === 'dark';
   const webViewRef = useRef<WebViewRefHandle>(null);
+  const activeObjectUriRef = useRef<string | undefined>(undefined);
   const pdfBridge = useMemo(() => createPdfBridgeController(), []);
+
+  useEffect(() => {
+    return () => {
+      releasePickedUri(activeObjectUriRef.current);
+    };
+  }, []);
 
   const [analyzedDoc, setAnalyzedDoc] = useState<AnalyzedDocumentItem | null>(
     null,
@@ -135,8 +110,8 @@ export function DocumentBlurDetector({
   );
 
   const handleWebViewMessage = useCallback(
-    (event: WebViewMessageEvent) => {
-      pdfBridge.handleMessage(event.nativeEvent.data);
+    (data: string) => {
+      pdfBridge.handleMessage(data);
     },
     [pdfBridge],
   );
@@ -165,16 +140,20 @@ export function DocumentBlurDetector({
     [mergedConfig, onDocumentAnalyzed],
   );
 
+  const trackActiveUri = useCallback((uri?: string) => {
+    if (activeObjectUriRef.current && activeObjectUriRef.current !== uri) {
+      releasePickedUri(activeObjectUriRef.current);
+    }
+    activeObjectUriRef.current = uri;
+  }, []);
+
   const analyzeImageSource = useCallback(
-    async (asset: {
-      uri: string;
-      name: string;
-      width?: number;
-      height?: number;
-      size?: number;
-      base64?: string;
-    }) => {
-      if (!checkFileSize(asset.size)) return;
+    async (asset: PickedMediaAsset) => {
+      if (!checkFileSize(asset.size)) {
+        releasePickedUri(asset.uri);
+        return;
+      }
+      trackActiveUri(asset.uri);
       setErrorMsg(null);
       setIsProcessing(true);
       setLoadingMsg('Analisando nitidez da imagem...');
@@ -206,18 +185,27 @@ export function DocumentBlurDetector({
         setLoadingMsg('');
       }
     },
-    [checkFileSize, finalizeDocument, mergedConfig.maxAnalysisDim],
+    [
+      checkFileSize,
+      finalizeDocument,
+      mergedConfig.maxAnalysisDim,
+      trackActiveUri,
+    ],
   );
 
   const analyzePdfSource = useCallback(
-    async (asset: { uri: string; name: string; size?: number }) => {
-      if (!checkFileSize(asset.size)) return;
+    async (asset: PickedMediaAsset) => {
+      if (!checkFileSize(asset.size)) {
+        releasePickedUri(asset.uri);
+        return;
+      }
+      trackActiveUri(undefined);
       setErrorMsg(null);
       setIsProcessing(true);
       setLoadingMsg(`Preparando "${asset.name}"...`);
       try {
         const pdfResult = await extractPdfPages(
-          { uri: asset.uri },
+          { uri: asset.uri, file: asset.file },
           {
             maxPages: maxPdfPages,
             targetMaxDim: mergedConfig.maxAnalysisDim,
@@ -250,6 +238,7 @@ export function DocumentBlurDetector({
           err instanceof Error ? err.message : 'Erro ao analisar o PDF.',
         );
       } finally {
+        releasePickedUri(asset.uri);
         setIsProcessing(false);
         setLoadingMsg('');
       }
@@ -260,106 +249,51 @@ export function DocumentBlurDetector({
       maxPdfPages,
       mergedConfig.maxAnalysisDim,
       pdfBridge,
+      trackActiveUri,
     ],
   );
 
   const handlePickGallery = useCallback(async () => {
     if (isProcessing) return;
-    const res = await launchImageLibrary({
-      mediaType: 'photo',
-      maxWidth: mergedConfig.maxAnalysisDim,
-      maxHeight: mergedConfig.maxAnalysisDim,
-      quality: 1,
-      includeBase64: true,
-      assetRepresentationMode: 'compatible',
-    });
-    if (res.didCancel) return;
-    if (res.errorMessage) {
-      setErrorMsg(res.errorMessage);
-      return;
+    try {
+      const asset = await pickGalleryImage(mergedConfig.maxAnalysisDim);
+      if (!asset) return;
+      await analyzeImageSource(asset);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Erro ao selecionar imagem.',
+      );
     }
-    const asset = res.assets?.[0];
-    if (!asset?.uri) return;
-
-    await analyzeImageSource({
-      uri: asset.uri,
-      name: asset.fileName ?? 'galeria.jpg',
-      width: asset.width,
-      height: asset.height,
-      size: asset.fileSize,
-      base64: asset.base64,
-    });
   }, [analyzeImageSource, isProcessing, mergedConfig.maxAnalysisDim]);
 
   const handleTakePhoto = useCallback(async () => {
     if (isProcessing) return;
-    const ok = await ensureCameraPermission();
-    if (!ok) {
-      setErrorMsg('Permissão de câmera necessária.');
-      return;
+    try {
+      const asset = await captureCameraPhoto(mergedConfig.maxAnalysisDim);
+      if (!asset) return;
+      await analyzeImageSource(asset);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Erro ao capturar foto.',
+      );
     }
-    const res = await launchCamera({
-      mediaType: 'photo',
-      maxWidth: mergedConfig.maxAnalysisDim,
-      maxHeight: mergedConfig.maxAnalysisDim,
-      quality: 1,
-      includeBase64: true,
-    });
-    if (res.didCancel) return;
-    if (res.errorMessage) {
-      setErrorMsg(res.errorMessage);
-      return;
-    }
-    const asset = res.assets?.[0];
-    if (!asset?.uri) return;
-
-    await analyzeImageSource({
-      uri: asset.uri,
-      name: asset.fileName ?? 'camera.jpg',
-      width: asset.width,
-      height: asset.height,
-      size: asset.fileSize,
-      base64: asset.base64,
-    });
   }, [analyzeImageSource, isProcessing, mergedConfig.maxAnalysisDim]);
 
   const handlePickDocument = useCallback(async () => {
     if (isProcessing) return;
     try {
-      const [picked] = await pick({
-        type: [types.pdf, types.images],
-      });
-      if (!picked) return;
+      const asset = await pickDocumentFile();
+      if (!asset) return;
 
-      const fileName = picked.name ?? 'documento';
-      const mimeType = picked.type ?? undefined;
-
-      const [copied] = await keepLocalCopy({
-        files: [{ uri: picked.uri, fileName }],
-        destination: 'cachesDirectory',
-      });
-      const localUri =
-        copied.status === 'success' ? copied.localUri : picked.uri;
-
-      if (isPdfAsset(fileName, mimeType)) {
-        await analyzePdfSource({
-          uri: localUri,
-          name: fileName,
-          size: picked.size ?? undefined,
-        });
-      } else if (isImageAsset(fileName, mimeType)) {
-        await analyzeImageSource({
-          uri: localUri,
-          name: fileName,
-          size: picked.size ?? undefined,
-        });
+      if (isPdfAsset(asset.name, asset.mimeType)) {
+        await analyzePdfSource(asset);
+      } else if (isImageAsset(asset.name, asset.mimeType)) {
+        await analyzeImageSource(asset);
       } else {
-        setErrorMsg('Selecione apenas arquivos PDF ou imagens JPEG.');
+        releasePickedUri(asset.uri);
+        setErrorMsg('Selecione apenas arquivos PDF ou imagens.');
       }
     } catch (err) {
-      if (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) {
-        return;
-      }
       setErrorMsg(
         err instanceof Error ? err.message : 'Erro ao selecionar documento.',
       );
@@ -382,16 +316,7 @@ export function DocumentBlurDetector({
 
   return (
     <View style={[styles.container, style]}>
-      <View pointerEvents="none" style={styles.hiddenWebViewWrap}>
-        <TypedWebView
-          ref={webViewRef}
-          source={{ html: PDF_WEBVIEW_HTML }}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          onMessage={handleWebViewMessage}
-          style={styles.hiddenWebView}
-        />
-      </View>
+      <PdfBridgeWebView ref={webViewRef} onMessage={handleWebViewMessage} />
 
       <View
         style={[
@@ -505,6 +430,7 @@ export function DocumentBlurDetector({
             </View>
             <Pressable
               onPress={() => {
+                trackActiveUri(undefined);
                 setAnalyzedDoc(null);
                 setSelectedPageIdx(0);
                 setErrorMsg(null);
@@ -604,14 +530,6 @@ export function DocumentBlurDetector({
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
-  hiddenWebViewWrap: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    opacity: 0,
-    overflow: 'hidden',
-  },
-  hiddenWebView: { width: 1, height: 1 },
   card: {
     borderWidth: 1,
     borderRadius: 12,
