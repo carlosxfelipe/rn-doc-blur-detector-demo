@@ -51,6 +51,8 @@ import {
   validateFileSize,
 } from 'rn-doc-blur-detector/pdf';
 
+import { Icon } from './Icon';
+
 interface WebViewRefHandle {
   injectJavaScript: (script: string) => void;
 }
@@ -407,6 +409,7 @@ export function DocumentBlurDetector({
               isProcessing && styles.buttonDisabled,
             ]}
           >
+            <Icon name="image-outline" size={18} color={colors.onPrimary} />
             <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
               Galeria
             </Text>
@@ -422,6 +425,7 @@ export function DocumentBlurDetector({
               isProcessing && styles.buttonDisabled,
             ]}
           >
+            <Icon name="camera-outline" size={18} color={colors.text} />
             <Text style={[styles.buttonText, { color: colors.text }]}>
               Câmera
             </Text>
@@ -437,6 +441,7 @@ export function DocumentBlurDetector({
               isProcessing && styles.buttonDisabled,
             ]}
           >
+            <Icon name="file-document-outline" size={18} color={colors.text} />
             <Text style={[styles.buttonText, { color: colors.text }]}>PDF</Text>
           </Pressable>
         </View>
@@ -618,6 +623,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 10,
+    flexDirection: 'row',
+    gap: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },

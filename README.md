@@ -13,7 +13,7 @@ Aplicativo de demonstração em **React Native CLI** para validar o pacote [`rn-
 - **Node.js `>= 22.11.0`**
 - Ambiente **Android** (Android Studio / SDK) e/ou **iOS** (Xcode + CocoaPods)
 
-> O pacote `rn-doc-blur-detector` já está incluído neste repositório em [vendor/rn-doc-blur-detector-1.0.0.tgz](./vendor/rn-doc-blur-detector-1.0.0.tgz), então basta executar `npm install`.
+> O pacote `rn-doc-blur-detector` é instalado diretamente do GitHub (`github:carlosxfelipe/rn-doc-blur-detector`), então basta executar `npm install`.
 
 ## Como executar
 
