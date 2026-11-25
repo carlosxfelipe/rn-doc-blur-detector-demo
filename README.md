@@ -2,6 +2,8 @@
 
 Aplicativo de demonstração em **React Native CLI** para validar o pacote [`rn-doc-blur-detector`](https://github.com/carlosxfelipe/rn-doc-blur-detector) no **Android**, no **iOS** e na **Web** (`react-native-web` + Vite).
 
+Versão Web: https://rn-doc-blur-detector-demo.netlify.app/
+
 ## O que este app demonstra
 
 - **Seleção de imagens e PDFs:** permite escolher arquivos da galeria, capturar fotos com a câmera ou selecionar imagens e documentos PDF pelo seletor do dispositivo.

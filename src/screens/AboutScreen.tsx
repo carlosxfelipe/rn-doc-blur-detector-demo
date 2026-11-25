@@ -1,4 +1,6 @@
 import {
+  Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +10,11 @@ import {
 import { DEFAULT_LAPLACIAN_CONFIG } from 'rn-doc-blur-detector';
 import { DEFAULT_MAX_FILE_SIZE_MB } from 'rn-doc-blur-detector/pdf';
 
+import { Icon } from '../components/Icon';
+
+const PACKAGE_REPO_URL =
+  'https://github.com/carlosxfelipe/rn-doc-blur-detector';
+
 export function AboutScreen() {
   const isDark = useColorScheme() === 'dark';
 
@@ -15,17 +22,25 @@ export function AboutScreen() {
     ? {
         bg: '#0B1120',
         card: '#111827',
+        surface: '#090D16',
         border: '#334155',
         text: '#F8FAFC',
         muted: '#94A3B8',
+        primary: '#60A5FA',
       }
     : {
         bg: '#F8FAFC',
         card: '#FFFFFF',
+        surface: '#F1F5F9',
         border: '#CBD5E1',
         text: '#0F172A',
         muted: '#475569',
+        primary: '#1D4ED8',
       };
+
+  const handleOpenRepo = () => {
+    Linking.openURL(PACKAGE_REPO_URL).catch(() => {});
+  };
 
   return (
     <ScrollView
@@ -46,6 +61,23 @@ export function AboutScreen() {
           TypeScript puro para detecção de documentos borrados 100% no
           dispositivo.
         </Text>
+        <Pressable
+          onPress={handleOpenRepo}
+          accessibilityRole="link"
+          accessibilityLabel="Abrir repositório do pacote rn-doc-blur-detector no GitHub"
+          style={[
+            styles.linkButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Icon name="github" size={18} color={colors.text} />
+          <Text
+            numberOfLines={1}
+            style={[styles.linkText, { color: colors.primary }]}
+          >
+            github.com/carlosxfelipe/rn-doc-blur-detector
+          </Text>
+        </Pressable>
       </View>
 
       <View
@@ -105,4 +137,19 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700' },
   body: { fontSize: 14, lineHeight: 20 },
   row: { fontSize: 14, lineHeight: 20 },
+  linkButton: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  linkText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });
