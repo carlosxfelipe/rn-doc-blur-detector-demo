@@ -12,9 +12,15 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
+  analyzeDocumentFraming,
   type BlurStatus,
   DEFAULT_LAPLACIAN_CONFIG,
+  type DocumentFramingConfig,
+  type DocumentFramingProfile,
+  type DocumentFramingResult,
+  type FramingStatus,
   type LaplacianBlurConfig,
+  resolveFramingConfig,
 } from 'rn-doc-blur-detector';
 import {
   type AnalyzedDocumentItem,
@@ -36,14 +42,6 @@ import {
   pickGalleryImage,
   releasePickedUri,
 } from '../utils/documentPicker';
-import {
-  analyzeDocumentFraming,
-  type DocumentFramingConfig,
-  type DocumentFramingProfile,
-  type DocumentFramingResult,
-  type FramingStatus,
-  resolveFramingConfig,
-} from '../utils/documentFraming';
 import { Icon } from './Icon';
 import { PdfBridgeWebView, type WebViewRefHandle } from './PdfBridgeWebView';
 

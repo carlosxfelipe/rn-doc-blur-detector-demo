@@ -8,8 +8,9 @@ import {
   View,
 } from 'react-native';
 
+import type { DocumentFramingProfile } from 'rn-doc-blur-detector';
+
 import { DocumentBlurDetector } from '../components/DocumentBlurDetector';
-import type { DocumentFramingProfile } from '../utils/documentFraming';
 
 const FRAMING_OPTIONS: Array<{
   value: DocumentFramingProfile;

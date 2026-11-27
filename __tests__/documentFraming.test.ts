@@ -2,7 +2,7 @@ jest.mock('rn-doc-blur-detector', () =>
   require('../node_modules/rn-doc-blur-detector/lib/commonjs/index.js'),
 );
 
-import { analyzeDocumentFraming } from '../src/utils/documentFraming';
+import { analyzeDocumentFraming } from 'rn-doc-blur-detector';
 
 function createBuffer(
   width: number,
