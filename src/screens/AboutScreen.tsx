@@ -7,7 +7,10 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { DEFAULT_LAPLACIAN_CONFIG } from 'rn-doc-blur-detector';
+import {
+  DEFAULT_LAPLACIAN_CONFIG,
+  FRAMING_PROFILE_DEFAULTS,
+} from 'rn-doc-blur-detector';
 import { DEFAULT_MAX_FILE_SIZE_MB } from 'rn-doc-blur-detector/pdf';
 
 import { Icon } from '../components/Icon';
@@ -100,6 +103,55 @@ export function AboutScreen() {
         </Text>
         <Text style={[styles.row, { color: colors.muted }]}>
           {`• Limite padrão de arquivo na demo: ${DEFAULT_MAX_FILE_SIZE_MB} MB`}
+        </Text>
+      </View>
+
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.title, { color: colors.text }]}>
+          Perfis de Enquadramento
+        </Text>
+        <Text style={[styles.body, { color: colors.muted }]}>
+          A detecção de nitidez e de bordas cortadas é igual em todos os perfis;
+          o que muda são as tolerâncias de área, proporção, inclinação e
+          centralização:
+        </Text>
+        <Text style={[styles.row, { color: colors.muted }]}>
+          {`• Auto: área ≥ ${Math.round(
+            FRAMING_PROFILE_DEFAULTS.auto.minAreaCoverage * 100,
+          )}% • inclinação ≤ ${
+            FRAMING_PROFILE_DEFAULTS.auto.maxSkewDegrees
+          }° • centro ≤ ${Math.round(
+            FRAMING_PROFILE_DEFAULTS.auto.maxCenterOffsetRatio * 100,
+          )}% • sem validação estrita de proporção`}
+        </Text>
+        <Text style={[styles.row, { color: colors.muted }]}>
+          {`• Folha A4 / Contrato: área ≥ ${Math.round(
+            FRAMING_PROFILE_DEFAULTS.a4.minAreaCoverage * 100,
+          )}% • proporção ${FRAMING_PROFILE_DEFAULTS.a4.minAspectRatio}–${
+            FRAMING_PROFILE_DEFAULTS.a4.maxAspectRatio
+          }:1 • inclinação ≤ ${
+            FRAMING_PROFILE_DEFAULTS.a4.maxSkewDegrees
+          }° • centro ≤ ${Math.round(
+            FRAMING_PROFILE_DEFAULTS.a4.maxCenterOffsetRatio * 100,
+          )}%`}
+        </Text>
+        <Text style={[styles.row, { color: colors.muted }]}>
+          {`• Identidade (RG/CNH): área ≥ ${Math.round(
+            FRAMING_PROFILE_DEFAULTS['id-card'].minAreaCoverage * 100,
+          )}% • proporção ${
+            FRAMING_PROFILE_DEFAULTS['id-card'].minAspectRatio
+          }–${
+            FRAMING_PROFILE_DEFAULTS['id-card'].maxAspectRatio
+          }:1 • inclinação ≤ ${
+            FRAMING_PROFILE_DEFAULTS['id-card'].maxSkewDegrees
+          }° • centro ≤ ${Math.round(
+            FRAMING_PROFILE_DEFAULTS['id-card'].maxCenterOffsetRatio * 100,
+          )}%`}
         </Text>
       </View>
 
