@@ -8,9 +8,11 @@ import { StyleSheet, useColorScheme, View } from 'react-native';
 
 import { AboutScreen } from '../screens/AboutScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { ValidationScreen } from '../screens/ValidationScreen';
 
 export type RootTabParamList = {
-  Detector: undefined;
+  Inicio: undefined;
+  Validar: undefined;
   Sobre: undefined;
 };
 
@@ -21,6 +23,14 @@ function DetectorTabIcon({ color }: { color: string }) {
     <View style={[styles.docIcon, { borderColor: color }]}>
       <View style={[styles.docLine, { backgroundColor: color }]} />
       <View style={[styles.docLineShort, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+function ValidateTabIcon({ color }: { color: string }) {
+  return (
+    <View style={[styles.checkBox, { borderColor: color }]}>
+      <View style={[styles.checkMark, { borderColor: color }]} />
     </View>
   );
 }
@@ -36,6 +46,10 @@ function AboutTabIcon({ color }: { color: string }) {
 
 function renderDetectorIcon({ color }: { color: string }) {
   return <DetectorTabIcon color={color} />;
+}
+
+function renderValidateIcon({ color }: { color: string }) {
+  return <ValidateTabIcon color={color} />;
 }
 
 function renderAboutIcon({ color }: { color: string }) {
@@ -114,12 +128,21 @@ export function RootNavigator() {
         }}
       >
         <Tab.Screen
-          name="Detector"
+          name="Inicio"
           component={HomeScreen}
           options={{
-            title: 'Detector de Nitidez',
-            tabBarLabel: 'Detector',
+            title: 'Início',
+            tabBarLabel: 'Início',
             tabBarIcon: renderDetectorIcon,
+          }}
+        />
+        <Tab.Screen
+          name="Validar"
+          component={ValidationScreen}
+          options={{
+            title: 'Modo Simplificado',
+            tabBarLabel: 'Simplificado',
+            tabBarIcon: renderValidateIcon,
           }}
         />
         <Tab.Screen
@@ -176,5 +199,20 @@ const styles = StyleSheet.create({
     width: 2,
     height: 6,
     borderRadius: 1,
+  },
+  checkBox: {
+    width: 19,
+    height: 19,
+    borderWidth: 1.8,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkMark: {
+    width: 9,
+    height: 5,
+    borderLeftWidth: 1.8,
+    borderBottomWidth: 1.8,
+    transform: [{ rotate: '-45deg' }, { translateY: -1 }],
   },
 });
