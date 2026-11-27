@@ -36,6 +36,14 @@ import {
   pickGalleryImage,
   releasePickedUri,
 } from '../utils/documentPicker';
+import {
+  analyzeDocumentFraming,
+  type DocumentFramingConfig,
+  type DocumentFramingProfile,
+  type DocumentFramingResult,
+  type FramingStatus,
+  resolveFramingConfig,
+} from '../utils/documentFraming';
 import { Icon } from './Icon';
 import { PdfBridgeWebView, type WebViewRefHandle } from './PdfBridgeWebView';
 
@@ -46,16 +54,31 @@ const STATUS_COLORS: Record<BlurStatus, { accent: string; bg: string }> = {
   insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
 };
 
+const FRAMING_STATUS_COLORS: Record<
+  FramingStatus,
+  { accent: string; bg: string }
+> = {
+  good: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
+  warning: { accent: '#B45309', bg: 'rgba(180, 83, 9, 0.12)' },
+  poor: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
+  insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
+};
+
 export interface DocumentBlurDetectorProps {
   config?: Partial<LaplacianBlurConfig>;
+  framing?: DocumentFramingProfile | Partial<DocumentFramingConfig>;
   maxPdfPages?: number;
   maxFileSizeMb?: number;
-  onDocumentAnalyzed?: (document: AnalyzedDocumentItem) => void;
+  onDocumentAnalyzed?: (
+    document: AnalyzedDocumentItem,
+    framingAnalyses?: DocumentFramingResult[],
+  ) => void;
   style?: StyleProp<ViewStyle>;
 }
 
 export function DocumentBlurDetector({
   config,
+  framing = 'auto',
   maxPdfPages = 2,
   maxFileSizeMb = DEFAULT_MAX_FILE_SIZE_MB,
   onDocumentAnalyzed,
@@ -79,11 +102,18 @@ export function DocumentBlurDetector({
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [previewBoxWidth, setPreviewBoxWidth] = useState(0);
 
   const mergedConfig = useMemo<LaplacianBlurConfig>(
     () => ({ ...DEFAULT_LAPLACIAN_CONFIG, locale: 'pt-BR', ...config }),
     [config],
   );
+
+  const resolvedFraming = useMemo(
+    () => resolveFramingConfig(framing, mergedConfig.locale ?? 'pt-BR'),
+    [framing, mergedConfig.locale],
+  );
+  const isFramingEnabled = resolvedFraming.profile !== 'off';
 
   const colors = useMemo(
     () =>
@@ -133,11 +163,16 @@ export function DocumentBlurDetector({
   const finalizeDocument = useCallback(
     (item: Omit<AnalyzedDocumentItem, 'pageAnalyses' | 'summary'>) => {
       const doc = buildAnalyzedDocument(item, mergedConfig);
+      const framingResults = isFramingEnabled
+        ? doc.pages.map(page =>
+            analyzeDocumentFraming(page.rgba, resolvedFraming),
+          )
+        : undefined;
       setAnalyzedDoc(doc);
       setSelectedPageIdx(0);
-      onDocumentAnalyzed?.(doc);
+      onDocumentAnalyzed?.(doc, framingResults);
     },
-    [mergedConfig, onDocumentAnalyzed],
+    [isFramingEnabled, mergedConfig, onDocumentAnalyzed, resolvedFraming],
   );
 
   const trackActiveUri = useCallback((uri?: string) => {
@@ -309,10 +344,39 @@ export function DocumentBlurDetector({
     ? STATUS_COLORS[activeAnalysis.status]
     : null;
 
+  const framingAnalyses = useMemo(() => {
+    if (!analyzedDoc || !isFramingEnabled) return null;
+    return analyzedDoc.pages.map(page =>
+      analyzeDocumentFraming(page.rgba, resolvedFraming),
+    );
+  }, [analyzedDoc, isFramingEnabled, resolvedFraming]);
+
+  const activeFraming = framingAnalyses?.[safeIdx] ?? null;
+  const framingColors = activeFraming
+    ? FRAMING_STATUS_COLORS[activeFraming.status]
+    : null;
+
   const previewAspectRatio =
     activePage && activePage.width > 0 && activePage.height > 0
       ? Math.max(0.5, Math.min(2, activePage.width / activePage.height))
       : 4 / 3;
+
+  const previewDimensions = useMemo(() => {
+    if (!activePage || previewBoxWidth <= 0) return null;
+    const innerWidth = Math.max(1, previewBoxWidth - 12);
+    const ratio =
+      activePage.width > 0 && activePage.height > 0
+        ? activePage.width / activePage.height
+        : previewAspectRatio;
+    const maxH = 320;
+    let width = innerWidth;
+    let height = width / ratio;
+    if (height > maxH) {
+      height = maxH;
+      width = height * ratio;
+    }
+    return { width, height };
+  }, [activePage, previewAspectRatio, previewBoxWidth]);
 
   return (
     <View style={[styles.container, style]}>
@@ -503,6 +567,52 @@ export function DocumentBlurDetector({
             </Text>
           </View>
 
+          {activeFraming && framingColors ? (
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.verdictTop}>
+                <Text style={[styles.verdictTitle, { color: colors.text }]}>
+                  {activeFraming.label}
+                </Text>
+                <View
+                  style={[styles.badge, { backgroundColor: framingColors.bg }]}
+                >
+                  <Text style={[styles.bold, { color: framingColors.accent }]}>
+                    {`${activeFraming.score}/100`}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.verdictDesc, { color: colors.muted }]}>
+                {activeFraming.reason}
+              </Text>
+              {activeFraming.issues.length > 1
+                ? activeFraming.issues.slice(1).map((issue, idx) => (
+                    <Text
+                      key={idx}
+                      style={[styles.mutedSmall, { color: colors.muted }]}
+                    >
+                      {`• ${issue}`}
+                    </Text>
+                  ))
+                : null}
+              <Text style={[styles.metricsLine, { color: colors.muted }]}>
+                {activeFraming.metrics.isFullPageScan
+                  ? `Página inteira • Proporção: ${activeFraming.metrics.aspectRatio}:1 • ${activeFraming.metrics.elapsedMs} ms`
+                  : `Área: ${Math.round(
+                      activeFraming.metrics.areaCoverage * 100,
+                    )}% • Inclinação: ${
+                      activeFraming.metrics.skewDegrees
+                    }° • Proporção: ${activeFraming.metrics.aspectRatio}:1 • ${
+                      activeFraming.metrics.elapsedMs
+                    } ms`}
+              </Text>
+            </View>
+          ) : null}
+
           <View
             style={[
               styles.card,
@@ -510,16 +620,59 @@ export function DocumentBlurDetector({
             ]}
           >
             <View
+              onLayout={event => {
+                const nextWidth = event.nativeEvent.layout.width;
+                if (nextWidth > 0 && nextWidth !== previewBoxWidth) {
+                  setPreviewBoxWidth(nextWidth);
+                }
+              }}
               style={[styles.previewBox, { backgroundColor: colors.frame }]}
             >
-              <Image
-                source={{ uri: activePage.previewUri }}
-                resizeMode="contain"
-                style={[
-                  styles.previewImage,
-                  { aspectRatio: previewAspectRatio },
-                ]}
-              />
+              {previewDimensions ? (
+                <View
+                  style={{
+                    width: previewDimensions.width,
+                    height: previewDimensions.height,
+                  }}
+                >
+                  <Image
+                    source={{ uri: activePage.previewUri }}
+                    resizeMode="contain"
+                    style={styles.previewFullImage}
+                  />
+                  {activeFraming?.metrics.boundingBox &&
+                  !activeFraming.metrics.isFullPageScan &&
+                  framingColors ? (
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.framingOverlay,
+                        {
+                          left: `${activeFraming.metrics.boundingBox.x * 100}%`,
+                          top: `${activeFraming.metrics.boundingBox.y * 100}%`,
+                          width: `${
+                            activeFraming.metrics.boundingBox.width * 100
+                          }%`,
+                          height: `${
+                            activeFraming.metrics.boundingBox.height * 100
+                          }%`,
+                          borderColor: framingColors.accent,
+                          backgroundColor: framingColors.bg,
+                        },
+                      ]}
+                    />
+                  ) : null}
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: activePage.previewUri }}
+                  resizeMode="contain"
+                  style={[
+                    styles.previewImage,
+                    { aspectRatio: previewAspectRatio },
+                  ]}
+                />
+              )}
             </View>
           </View>
         </View>
@@ -598,4 +751,10 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   previewImage: { width: '100%', maxHeight: 320 },
+  previewFullImage: { width: '100%', height: '100%' },
+  framingOverlay: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderRadius: 4,
+  },
 });
