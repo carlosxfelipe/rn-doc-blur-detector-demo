@@ -17,8 +17,8 @@ const FRAMING_OPTIONS: Array<{
   label: string;
 }> = [
   { value: 'auto', label: 'Auto' },
-  { value: 'a4', label: 'Folha A4 / Contrato' },
-  { value: 'id-card', label: 'Identidade (RG/CNH)' },
+  { value: 'a4', label: 'A4' },
+  { value: 'id-card', label: 'RG/CNH' },
   { value: 'off', label: 'Desativado' },
 ];
 

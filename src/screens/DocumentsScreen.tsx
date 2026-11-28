@@ -1,6 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Pressable,
   ScrollView,
@@ -31,6 +41,7 @@ import {
   PdfBridgeWebView,
   type WebViewRefHandle,
 } from '../components/PdfBridgeWebView';
+import type { RootTabParamList } from '../navigation/RootNavigator';
 import {
   captureCameraPhoto,
   pickDocumentFile,
@@ -98,8 +109,31 @@ const STATUS_PALETTE = {
   },
 } as const;
 
+function HeaderBackButton({
+  onPress,
+  color,
+}: {
+  onPress: () => void;
+  color: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={10}
+      style={styles.headerBackBtn}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+    >
+      <Icon name="chevron-left" size={26} color={color} />
+    </Pressable>
+  );
+}
+
 export function DocumentsScreen() {
   const isDark = useColorScheme() === 'dark';
+  const navigation =
+    useNavigation<BottomTabNavigationProp<RootTabParamList, 'Documentos'>>();
+  const isFocused = useIsFocused();
   const webViewRef = useRef<WebViewRefHandle>(null);
   const activePreviewUriRef = useRef<string | undefined>(undefined);
   const pdfBridge = useMemo(() => createPdfBridgeController(), []);
@@ -473,6 +507,46 @@ export function DocumentsScreen() {
     setStage('collecting');
   }, [clearPendingPreview]);
 
+  const handleHeaderBack = useCallback(() => {
+    if (stage === 'preview') {
+      handleRetryPreview();
+      return true;
+    }
+    if (stage === 'collecting') {
+      setErrorMsg(null);
+      setBannerMsg(null);
+      setStage('intro');
+      return true;
+    }
+    return false;
+  }, [handleRetryPreview, stage]);
+
+  const renderHeaderLeft = useCallback(
+    () => <HeaderBackButton onPress={handleHeaderBack} color={colors.text} />,
+    [colors.text, handleHeaderBack],
+  );
+
+  const showHeaderBack = stage === 'collecting' || stage === 'preview';
+  const headerTitle =
+    stage === 'preview' && pendingPreview
+      ? pendingPreview.docLabel
+      : 'Documentos';
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: headerTitle,
+      headerLeft: showHeaderBack ? renderHeaderLeft : undefined,
+    });
+  }, [headerTitle, navigation, renderHeaderLeft, showHeaderBack]);
+
+  useEffect(() => {
+    if (!isFocused || !showHeaderBack) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () =>
+      handleHeaderBack(),
+    );
+    return () => sub.remove();
+  }, [handleHeaderBack, isFocused, showHeaderBack]);
+
   const handleSelectDocType = useCallback((key: DocumentTypeKey) => {
     setErrorMsg(null);
     setBannerMsg(null);
@@ -696,28 +770,13 @@ export function DocumentsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.previewHeader}>
-          <Pressable
-            onPress={handleRetryPreview}
-            style={[
-              styles.backBtn,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-            accessibilityLabel="Voltar para seleção de arquivo"
+        <View style={styles.previewHeaderText}>
+          <Text
+            numberOfLines={1}
+            style={[styles.mutedSmall, { color: colors.muted }]}
           >
-            <Icon name="chevron-left" size={22} color={colors.text} />
-          </Pressable>
-          <View style={styles.previewHeaderText}>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>
-              {pendingPreview.docLabel}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.mutedSmall, { color: colors.muted }]}
-            >
-              {`${pendingPreview.fileName} • ${pendingPreview.fileMeta}`}
-            </Text>
-          </View>
+            {`${pendingPreview.fileName} • ${pendingPreview.fileMeta}`}
+          </Text>
         </View>
 
         {pendingPreview.sourceKind === 'image' && pendingPreview.previewUri ? (
@@ -1291,15 +1350,6 @@ export function DocumentsScreen() {
           </Text>
         </Pressable>
       </View>
-
-      <Pressable
-        onPress={() => setStage('intro')}
-        style={styles.backToIntroBtn}
-      >
-        <Text style={[styles.mutedSmall, { color: colors.primary }]}>
-          Ver instruções de envio
-        </Text>
-      </Pressable>
     </ScrollView>
   );
 
@@ -1458,21 +1508,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   outlinedButton: { borderWidth: 1 },
-  backToIntroBtn: { alignSelf: 'center', paddingVertical: 4 },
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderWidth: 1,
-    borderRadius: 10,
+  headerBackBtn: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  previewHeaderText: { flex: 1, gap: 2 },
+  previewHeaderText: { gap: 2 },
   previewFrameCard: {
     borderRadius: 12,
     padding: 8,

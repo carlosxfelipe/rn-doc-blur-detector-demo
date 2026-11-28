@@ -61,8 +61,8 @@ export function AboutScreen() {
         </Text>
         <Text style={[styles.body, { color: colors.muted }]}>
           App demo em React Native 0.88.1 (sem Expo) validando o core em
-          TypeScript puro para detecção de documentos borrados 100% no
-          dispositivo.
+          TypeScript puro para detecção de nitidez e enquadramento de documentos
+          100% no dispositivo.
         </Text>
         <Pressable
           onPress={handleOpenRepo}
