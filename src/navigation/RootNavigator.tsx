@@ -106,6 +106,7 @@ export function RootNavigator() {
       <Tab.Navigator
         screenOptions={{
           headerShown: true,
+          headerTitleAlign: 'center',
           headerStyle: {
             backgroundColor: palette.card,
           },
