@@ -4,7 +4,7 @@ import {
   DefaultTheme,
   NavigationContainer,
 } from '@react-navigation/native';
-import { StyleSheet, useColorScheme, View } from 'react-native';
+import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 
 import { AboutScreen } from '../screens/AboutScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -118,6 +118,7 @@ export function RootNavigator() {
           tabBarStyle: {
             backgroundColor: palette.card,
             borderTopColor: palette.border,
+            ...(Platform.OS === 'web' ? { height: 58 } : null),
           },
           tabBarActiveTintColor: palette.primary,
           tabBarInactiveTintColor: palette.muted,

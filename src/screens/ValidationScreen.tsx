@@ -35,8 +35,16 @@ import {
   releasePickedUri,
 } from '../utils/documentPicker';
 
-const PASS_COLOR = { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' };
-const FAIL_COLOR = { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' };
+const STATUS_PALETTE = {
+  light: {
+    pass: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
+    fail: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
+  },
+  dark: {
+    pass: { accent: '#4ADE80', bg: 'rgba(74, 222, 128, 0.16)' },
+    fail: { accent: '#F87171', bg: 'rgba(248, 113, 113, 0.16)' },
+  },
+} as const;
 
 const MAX_PDF_PAGES = 2;
 
@@ -304,7 +312,10 @@ export function ValidationScreen() {
     }
   }, [isProcessing, validateImageAsset, validatePdfAsset]);
 
-  const verdictColor = validation?.approved ? PASS_COLOR : FAIL_COLOR;
+  const statusColors = isDark ? STATUS_PALETTE.dark : STATUS_PALETTE.light;
+  const verdictColor = validation?.approved
+    ? statusColors.pass
+    : statusColors.fail;
 
   return (
     <ScrollView
@@ -372,10 +383,13 @@ export function ValidationScreen() {
         <View
           style={[
             styles.card,
-            { backgroundColor: FAIL_COLOR.bg, borderColor: FAIL_COLOR.accent },
+            {
+              backgroundColor: statusColors.fail.bg,
+              borderColor: statusColors.fail.accent,
+            },
           ]}
         >
-          <Text style={{ color: FAIL_COLOR.accent }}>{errorMsg}</Text>
+          <Text style={{ color: statusColors.fail.accent }}>{errorMsg}</Text>
         </View>
       ) : null}
 
@@ -454,8 +468,8 @@ export function ValidationScreen() {
                 styles.verdictDesc,
                 {
                   color: validation.isBlurValid
-                    ? PASS_COLOR.accent
-                    : FAIL_COLOR.accent,
+                    ? statusColors.pass.accent
+                    : statusColors.fail.accent,
                 },
               ]}
             >
@@ -469,8 +483,8 @@ export function ValidationScreen() {
                 styles.verdictDesc,
                 {
                   color: validation.isFramingValid
-                    ? PASS_COLOR.accent
-                    : FAIL_COLOR.accent,
+                    ? statusColors.pass.accent
+                    : statusColors.fail.accent,
                 },
               ]}
             >

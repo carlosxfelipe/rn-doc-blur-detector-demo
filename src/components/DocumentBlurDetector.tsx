@@ -45,21 +45,40 @@ import {
 import { Icon } from './Icon';
 import { PdfBridgeWebView, type WebViewRefHandle } from './PdfBridgeWebView';
 
-const STATUS_COLORS: Record<BlurStatus, { accent: string; bg: string }> = {
-  sharp: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
-  borderline: { accent: '#B45309', bg: 'rgba(180, 83, 9, 0.12)' },
-  blurry: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
-  insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
+const STATUS_PALETTE: Record<
+  'light' | 'dark',
+  Record<BlurStatus, { accent: string; bg: string }>
+> = {
+  light: {
+    sharp: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
+    borderline: { accent: '#B45309', bg: 'rgba(180, 83, 9, 0.12)' },
+    blurry: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
+    insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
+  },
+  dark: {
+    sharp: { accent: '#4ADE80', bg: 'rgba(74, 222, 128, 0.16)' },
+    borderline: { accent: '#FBBF24', bg: 'rgba(251, 191, 36, 0.16)' },
+    blurry: { accent: '#F87171', bg: 'rgba(248, 113, 113, 0.16)' },
+    insufficient: { accent: '#94A3B8', bg: 'rgba(148, 163, 184, 0.18)' },
+  },
 };
 
-const FRAMING_STATUS_COLORS: Record<
-  FramingStatus,
-  { accent: string; bg: string }
+const FRAMING_STATUS_PALETTE: Record<
+  'light' | 'dark',
+  Record<FramingStatus, { accent: string; bg: string }>
 > = {
-  good: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
-  warning: { accent: '#B45309', bg: 'rgba(180, 83, 9, 0.12)' },
-  poor: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
-  insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
+  light: {
+    good: { accent: '#15803D', bg: 'rgba(21, 128, 61, 0.12)' },
+    warning: { accent: '#B45309', bg: 'rgba(180, 83, 9, 0.12)' },
+    poor: { accent: '#B91C1C', bg: 'rgba(185, 28, 28, 0.12)' },
+    insufficient: { accent: '#475569', bg: 'rgba(100, 116, 139, 0.16)' },
+  },
+  dark: {
+    good: { accent: '#4ADE80', bg: 'rgba(74, 222, 128, 0.16)' },
+    warning: { accent: '#FBBF24', bg: 'rgba(251, 191, 36, 0.16)' },
+    poor: { accent: '#F87171', bg: 'rgba(248, 113, 113, 0.16)' },
+    insufficient: { accent: '#94A3B8', bg: 'rgba(148, 163, 184, 0.18)' },
+  },
 };
 
 export interface DocumentBlurDetectorProps {
@@ -338,8 +357,11 @@ export function DocumentBlurDetector({
     : 0;
   const activePage = analyzedDoc?.pages[safeIdx] ?? null;
   const activeAnalysis = analyzedDoc?.pageAnalyses[safeIdx] ?? null;
+  const themeKey = isDark ? 'dark' : 'light';
+  const statusPalette = STATUS_PALETTE[themeKey];
+  const framingPalette = FRAMING_STATUS_PALETTE[themeKey];
   const statusColors = activeAnalysis
-    ? STATUS_COLORS[activeAnalysis.status]
+    ? statusPalette[activeAnalysis.status]
     : null;
 
   const framingAnalyses = useMemo(() => {
@@ -351,7 +373,7 @@ export function DocumentBlurDetector({
 
   const activeFraming = framingAnalyses?.[safeIdx] ?? null;
   const framingColors = activeFraming
-    ? FRAMING_STATUS_COLORS[activeFraming.status]
+    ? framingPalette[activeFraming.status]
     : null;
 
   const previewAspectRatio =
@@ -439,12 +461,12 @@ export function DocumentBlurDetector({
           style={[
             styles.card,
             {
-              backgroundColor: STATUS_COLORS.blurry.bg,
-              borderColor: STATUS_COLORS.blurry.accent,
+              backgroundColor: statusPalette.blurry.bg,
+              borderColor: statusPalette.blurry.accent,
             },
           ]}
         >
-          <Text style={{ color: STATUS_COLORS.blurry.accent }}>{errorMsg}</Text>
+          <Text style={{ color: statusPalette.blurry.accent }}>{errorMsg}</Text>
         </View>
       ) : null}
 
