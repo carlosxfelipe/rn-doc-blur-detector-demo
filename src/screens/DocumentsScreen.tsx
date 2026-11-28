@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import {
   DEFAULT_LAPLACIAN_CONFIG,
+  type DocumentFramingProfile,
   type NormalizedBoundingBox,
 } from 'rn-doc-blur-detector';
 import {
@@ -70,6 +71,17 @@ const REQUIRED_DOCUMENTS = [
 
 type DocumentTypeKey = (typeof REQUIRED_DOCUMENTS)[number]['key'];
 type FlowStage = 'intro' | 'collecting' | 'preview' | 'submitted';
+
+const DOCUMENT_FRAMING_BY_TYPE: Record<
+  DocumentTypeKey,
+  DocumentFramingProfile
+> = {
+  rg: 'id-card',
+  cpf: 'id-card',
+  cnpj: 'a4',
+  comprovante: 'a4',
+  contrato: 'a4',
+};
 
 interface AttachedDocument {
   key: DocumentTypeKey;
@@ -271,7 +283,7 @@ export function DocumentsScreen() {
       const analyzed = buildAnalyzedDocument(item, {
         ...DEFAULT_LAPLACIAN_CONFIG,
         locale: 'pt-BR',
-        framing: 'auto',
+        framing: DOCUMENT_FRAMING_BY_TYPE[docKey],
       });
 
       const isBlurValid = analyzed.summary.status === 'sharp';
