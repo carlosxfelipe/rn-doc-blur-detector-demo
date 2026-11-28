@@ -7,12 +7,14 @@ import {
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 
 import { AboutScreen } from '../screens/AboutScreen';
+import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { ValidationScreen } from '../screens/ValidationScreen';
 
 export type RootTabParamList = {
   Inicio: undefined;
   Validar: undefined;
+  Documentos: undefined;
   Sobre: undefined;
 };
 
@@ -35,6 +37,15 @@ function ValidateTabIcon({ color }: { color: string }) {
   );
 }
 
+function DocumentsTabIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.stackWrap}>
+      <View style={[styles.stackBack, { borderColor: color }]} />
+      <View style={[styles.stackFront, { borderColor: color }]} />
+    </View>
+  );
+}
+
 function AboutTabIcon({ color }: { color: string }) {
   return (
     <View style={[styles.infoCircle, { borderColor: color }]}>
@@ -50,6 +61,10 @@ function renderDetectorIcon({ color }: { color: string }) {
 
 function renderValidateIcon({ color }: { color: string }) {
   return <ValidateTabIcon color={color} />;
+}
+
+function renderDocumentsIcon({ color }: { color: string }) {
+  return <DocumentsTabIcon color={color} />;
 }
 
 function renderAboutIcon({ color }: { color: string }) {
@@ -148,6 +163,15 @@ export function RootNavigator() {
           }}
         />
         <Tab.Screen
+          name="Documentos"
+          component={DocumentsScreen}
+          options={{
+            title: 'Documentos',
+            tabBarLabel: 'Documentos',
+            tabBarIcon: renderDocumentsIcon,
+          }}
+        />
+        <Tab.Screen
           name="Sobre"
           component={AboutScreen}
           options={{
@@ -216,5 +240,29 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1.8,
     borderBottomWidth: 1.8,
     transform: [{ rotate: '-45deg' }, { translateY: -1 }],
+  },
+  stackWrap: {
+    width: 20,
+    height: 20,
+    position: 'relative',
+  },
+  stackBack: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    width: 13,
+    height: 15,
+    borderTopWidth: 1.8,
+    borderRightWidth: 1.8,
+    borderTopRightRadius: 3,
+  },
+  stackFront: {
+    position: 'absolute',
+    bottom: 1,
+    left: 1,
+    width: 13,
+    height: 15,
+    borderWidth: 1.8,
+    borderRadius: 3,
   },
 });
